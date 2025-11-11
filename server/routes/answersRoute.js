@@ -58,17 +58,22 @@ router.post('/submit', async (req, res) => {
 
     const predicted = scoresToType(scores);
 
-    // Save to DB (history)
-    const entry = {
-      date: new Date(),
-      type: predicted,
-      scores
-    };
-    await UserHistory.findOneAndUpdate(
-      { userId },
-      { $push: { history: entry } },
-      { upsert: true, new: true }
-    );
+    // Save to DB (history) - only if MongoDB is connected
+    try {
+      const entry = {
+        date: new Date(),
+        type: predicted,
+        scores
+      };
+      await UserHistory.findOneAndUpdate(
+        { userId },
+        { $push: { history: entry } },
+        { upsert: true, new: true }
+      );
+    } catch (dbError) {
+      console.warn('Could not save to database:', dbError.message);
+      // Continue without saving - the prediction still works
+    }
 
     return res.json({ prediction: predicted, scores });
   } catch (err) {
@@ -79,10 +84,16 @@ router.post('/submit', async (req, res) => {
 
 // GET /answers/history/:userId
 router.get('/history/:userId', async (req, res) => {
-  const { userId } = req.params;
-  const doc = await UserHistory.findOne({ userId });
-  if (!doc) return res.json({ history: [] });
-  res.json({ history: doc.history });
+  try {
+    const { userId } = req.params;
+    const doc = await UserHistory.findOne({ userId });
+    if (!doc) return res.json({ history: [] });
+    res.json({ history: doc.history });
+  } catch (dbError) {
+    console.warn('Could not fetch history:', dbError.message);
+    // Return empty history if DB is not available
+    res.json({ history: [] });
+  }
 });
 
 module.exports = router;
