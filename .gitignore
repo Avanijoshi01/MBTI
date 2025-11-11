@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# Node
+node_modules/
+npm-debug.log
+.env
+
+# React
+mbti-frontend/node_modules/
+mbti-frontend/build/
+
+# OS
+.DS_Store
+Thumbs.db

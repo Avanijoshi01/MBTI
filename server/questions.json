@@ -1,0 +1,71 @@
+{
+  "start": {
+    "id": "start",
+    "text": "Which of these do you prefer on a free weekend?",
+    "options": {
+      "A": {"text":"Hanging out with a group of friends","traits":{"E":1},"next":"q2_group"},
+      "B": {"text":"Reading alone or quiet hobbies","traits":{"I":1},"next":"q2_alone"},
+      "C": {"text":"Going to a workshop or class","traits":{"N":1},"next":"q2_group"},
+      "D": {"text":"Doing chores and planning next week","traits":{"J":1},"next":"q2_plan"}
+    }
+  },
+
+  "q2_group": {
+    "id":"q2_group",
+    "text":"When in a group, do you usually:",
+    "options": {
+      "A":{"text":"Lead or organize activities","traits":{"E":1,"J":1},"next":"q3_task"},
+      "B":{"text":"Enjoy chatting and listening","traits":{"E":1,"F":1},"next":"q3_emotion"}
+    }
+  },
+
+  "q2_alone": {
+    "id":"q2_alone",
+    "text":"When alone, you prefer to:",
+    "options": {
+      "A":{"text":"Reflect and plan","traits":{"I":1,"J":1},"next":"q3_task"},
+      "B":{"text":"Explore creative ideas","traits":{"I":1,"N":1},"next":"q3_ideas"}
+    }
+  },
+
+  "q2_plan": {
+    "id":"q2_plan",
+    "text":"If a plan fails, you feel:",
+    "options": {
+      "A":{"text":"Frustrated — I like structure","traits":{"J":1},"next":"q3_task"},
+      "B":{"text":"Relieved — can be spontaneous","traits":{"P":1},"next":"q3_ideas"}
+    }
+  },
+
+  "q3_task": {
+    "id":"q3_task",
+    "text":"Do you make decisions based on:",
+    "options": {
+      "A":{"text":"Objective analysis","traits":{"T":1},"next":"end"},
+      "B":{"text":"Personal values or others' feelings","traits":{"F":1},"next":"end"}
+    }
+  },
+
+  "q3_emotion": {
+    "id":"q3_emotion",
+    "text":"Are you more likely to comfort others or give advice?",
+    "options": {
+      "A":{"text":"Comfort and listen","traits":{"F":1},"next":"end"},
+      "B":{"text":"Give practical steps and advice","traits":{"T":1},"next":"end"}
+    }
+  },
+
+  "q3_ideas": {
+    "id":"q3_ideas",
+    "text":"Do you focus on details or big-picture ideas?",
+    "options": {
+      "A":{"text":"Details and facts","traits":{"S":1},"next":"end"},
+      "B":{"text":"Patterns and possibilities","traits":{"N":1},"next":"end"}
+    }
+  },
+
+  "end": {
+    "id":"end",
+    "text":"Thank you — you will see your result now."
+  }
+}
