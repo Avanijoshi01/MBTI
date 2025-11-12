@@ -78,6 +78,18 @@ export default function Result({ result }) {
             <p className="text-white/80 text-lg">{mbtiData.description}</p>
           </div>
 
+          {/* ML Model indicator */}
+          {result.method === 'hybrid' && (
+            <div className="px-6 pt-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+                <span className="text-green-600 font-bold">🤖</span>
+                <span className="text-sm text-green-800">
+                  <strong>ML-Enhanced Prediction:</strong> This result uses our trained machine learning model combined with rule-based analysis for improved accuracy.
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Scores breakdown */}
           <div className="p-6">
             <h3 className="text-2xl font-bold text-gray-800 mb-4">Personality Traits Breakdown</h3>
@@ -85,16 +97,22 @@ export default function Result({ result }) {
               {Object.entries(scores || {}).map(([trait, value]) => (
                 <div key={trait} className="bg-gray-50 rounded-xl p-4 text-center">
                   <div className="text-sm font-semibold text-gray-600 mb-2">{trait}</div>
-                  <div className="text-2xl font-bold text-purple-600">{value}</div>
+                  <div className="text-2xl font-bold text-purple-600">{value.toFixed(1)}</div>
                   <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
                     <div 
                       className="bg-purple-600 h-2 rounded-full transition-all duration-1000"
-                      style={{ width: `${Math.abs(value) * 10}%` }}
+                      style={{ width: `${Math.min(Math.abs(value) * 10, 100)}%` }}
                     ></div>
                   </div>
                 </div>
               ))}
             </div>
+            {result.mlPrediction && result.mlPrediction !== result.prediction && (
+              <div className="mt-4 text-sm text-gray-600 text-center">
+                <p>ML Model suggested: <strong className="text-purple-600">{result.mlPrediction}</strong></p>
+                <p className="text-xs text-gray-500 mt-1">Final prediction combines ML analysis with quiz responses</p>
+              </div>
+            )}
           </div>
         </div>
 

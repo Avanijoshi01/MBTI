@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const UserHistory = require('../models/UserHistory');
 const axios = require('axios');
+const questions = require('../questions.json');
 
 // Utility to merge traits
 function mergeTraits(acc, traits) {
@@ -22,37 +23,67 @@ function scoresToType(scores) {
   return a + b + c + d;
 }
 
+// Build text from answers for ML model
+function buildAnswerText(answers) {
+  const textParts = [];
+  for (const ans of answers) {
+    const q = questions[ans.qId];
+    if (q && q.options && q.options[ans.optionKey]) {
+      // Include both question and selected answer
+      textParts.push(`${q.text} ${q.options[ans.optionKey].text}`);
+    }
+  }
+  return textParts.join(' ');
+}
+
 // POST /answers/submit
 // body: { userId, answers: [ {qId, optionKey, traits}, ... ], typingText(optional) }
 router.post('/submit', async (req, res) => {
   try {
     const { userId = 'anon', answers = [], typingText = '' } = req.body;
 
-    // accumulate traits from answers
+    // accumulate traits from answers (rule-based scoring)
     let scores = {};
     for (const ans of answers) {
       // ans.traits is an object like {E:1, J:1}
       mergeTraits(scores, ans.traits || {});
     }
 
-    // If typingText exists, send to Flask model for a text-based prediction/probs
-    if (typingText && typingText.trim().length > 10) {
+    // Try to use ML model for enhanced prediction
+    let mlPrediction = null;
+    const answerText = buildAnswerText(answers);
+    const combinedText = typingText 
+      ? `${typingText} ${answerText}` 
+      : answerText;
+
+    // Use ML model if we have enough text (either from typing or answers)
+    if (combinedText.trim().length > 10) {
       try {
-        const flask = await axios.post('http://localhost:5000/predict', { text: typingText });
-        // flask returns { prediction: 'INFP', probabilities: [...] } - combine heuristically
-        const textPred = flask.data.prediction;
-        // Option: give small weight to text model by incrementing corresponding letters
-        if (textPred && textPred.length === 4) {
-          const letters = textPred.split('');
-          // weight 0.7 -> add fractional scores
-          const weight = 0.7;
-          if (letters[0] === 'E') mergeTraits(scores, { E: weight }); else mergeTraits(scores, { I: weight });
-          if (letters[1] === 'S') mergeTraits(scores, { S: weight }); else mergeTraits(scores, { N: weight });
-          if (letters[2] === 'T') mergeTraits(scores, { T: weight }); else mergeTraits(scores, { F: weight });
-          if (letters[3] === 'J') mergeTraits(scores, { J: weight }); else mergeTraits(scores, { P: weight });
+        const flask = await axios.post('http://localhost:5000/predict', 
+          { text: combinedText },
+          { timeout: 5000 } // 5 second timeout
+        );
+        mlPrediction = flask.data.prediction;
+        console.log(`✅ ML Model prediction: ${mlPrediction}`);
+        
+        // Combine ML prediction with rule-based scores
+        // Give ML prediction higher weight (1.5) vs rule-based (1.0)
+        if (mlPrediction && mlPrediction.length === 4) {
+          const letters = mlPrediction.split('');
+          const mlWeight = 1.5; // ML model gets 60% weight
+          if (letters[0] === 'E') mergeTraits(scores, { E: mlWeight }); 
+          else mergeTraits(scores, { I: mlWeight });
+          if (letters[1] === 'S') mergeTraits(scores, { S: mlWeight }); 
+          else mergeTraits(scores, { N: mlWeight });
+          if (letters[2] === 'T') mergeTraits(scores, { T: mlWeight }); 
+          else mergeTraits(scores, { F: mlWeight });
+          if (letters[3] === 'J') mergeTraits(scores, { J: mlWeight }); 
+          else mergeTraits(scores, { P: mlWeight });
         }
       } catch (err) {
-        console.warn('Flask call failed', err.message);
+        // ML API not available - continue with rule-based only
+        console.warn('⚠ ML Model API not available (Flask server may not be running):', err.message);
+        console.warn('⚠ Continuing with rule-based prediction only.');
       }
     }
 
@@ -75,7 +106,13 @@ router.post('/submit', async (req, res) => {
       // Continue without saving - the prediction still works
     }
 
-    return res.json({ prediction: predicted, scores });
+    // Include ML prediction info in response
+    return res.json({ 
+      prediction: predicted, 
+      scores,
+      mlPrediction: mlPrediction || null,
+      method: mlPrediction ? 'hybrid' : 'rule-based'
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
